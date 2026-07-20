@@ -1,1 +1,419 @@
-
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "type": "string"
+    },
+    "adminPassword": {
+      "type": "securestring"
+    },
+    "AzureUserName": {
+      "type": "string"
+    },
+    "AzurePassword": {
+      "type": "securestring"
+    },
+    "ODLID": {
+      "type": "String"
+    },
+    "DeploymentID": {
+      "type": "string"
+    },
+    "trainerUserName": {
+      "type": "string"
+    },
+    "trainerUserPassword": {
+      "type": "string"
+    },
+    "azureSqlAdminLogin": {
+      "type": "string",
+      "defaultValue": "sqladmin"
+    },
+    "azureSqlAdminPassword": {
+      "type": "securestring"
+    },
+    "foundryModelName": {
+      "type": "string",
+      "defaultValue": "gpt-5.4"
+    },
+    "foundryModelVersion": {
+      "type": "string",
+      "defaultValue": "1"
+    },
+    "foundryModelCapacity": {
+      "type": "int",
+      "defaultValue": 10
+    },
+    "embeddingModelName": {
+      "type": "string",
+      "defaultValue": "text-embedding-3-small"
+    },
+    "embeddingModelVersion": {
+      "type": "string",
+      "defaultValue": "1"
+    },
+    "embeddingModelCapacity": {
+      "type": "int",
+      "defaultValue": 10
+    }
+  },
+  "variables": {
+    "cloudlabsCommon": "[concat(' -AzureUserName ', parameters('AzureUserName'), ' -AzurePassword ', parameters('AzurePassword'), ' -AzureTenantID ', variables('AzureTenantID'), ' -AzureSubscriptionID ', variables('AzureSubscriptionID'),' -odlId ', parameters('ODLID'), ' -DeploymentID ', parameters('DeploymentID'), ' -adminPassword ', parameters('adminPassword'))]",
+    "Enable-CloudLabsEmbeddedShadow": "[concat(' -vmAdminUsername ', parameters('adminUsername'), ' -trainerUserName ', parameters('trainerUserName'), ' -trainerUserPassword ', parameters('trainerUserPassword'))]",
+    "AzureSubscriptionID": "[subscription().subscriptionId]",
+    "AzureTenantID": "[subscription().tenantId]",
+    "addressPrefix": "10.0.0.0/16",
+    "networkInterfaceName": "[concat(variables('vmName'), '-nic')]",
+    "networkSecurityGroupName": "[concat(variables('vmName'), '-nsg')]",
+    "publicIpAddressDNSName": "[concat('labvm', uniqueString(resourceGroup().id))]",
+    "publicIpAddressName": "[concat(variables('vmName'), '-pip')]",
+    "subnetName": "Subnet",
+    "subnetPrefix": "10.0.0.0/24",
+    "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets/',variables('virtualNetworkName'), variables('subnetName'))]",
+    "virtualNetworkName": "labvNet",
+    "vmName": "[concat('labvm-',parameters('DeploymentID'))]",
+    "location": "[resourceGroup().location]",
+    "virtualMachineSize": "Standard_D2s_v3",
+    "foundryAccountName": "[concat('foundry-faq-', parameters('DeploymentID'))]",
+    "foundryProjectName": "FAQ-Assistant-project",
+    "foundryDeploymentName": "[parameters('foundryModelName')]",
+    "embeddingDeploymentName": "[parameters('embeddingModelName')]",
+    "sqlServerName": "[concat('faq-ai-assistant-', parameters('DeploymentID'))]",
+    "sqlDatabaseName": "[concat('faq-ai-assistant-db-', parameters('DeploymentID'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('vmName'),'/', 'winExtension')]",
+      "apiVersion": "2023-09-01",
+      "location": "[resourceGroup().location]",
+      "comments": "Post-deployment configuration: tooling, repo clone, pip install, .env build",
+      "tags": {
+        "displayName": "VM Extension"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "CustomScriptExtension",
+        "typeHandlerVersion": "1.8",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": [
+            "https://experienceazure.blob.core.windows.net/templates/cloudlabs-common/cloudlabs-windows-functions.ps1",
+            "https://siva2341.blob.core.windows.net/files/psscript-01.ps1"
+          ]
+        },
+        "protectedSettings": {
+          "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File psscript-01.ps1', variables('cloudlabsCommon'), variables('Enable-CloudLabsEmbeddedShadow'))]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIpAddresses",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('publicIpAddressName')]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIpAllocationMethod": "Static",
+        "publicIPAddressVersion": "IPv4",
+        "dnsSettings": {
+          "domainNameLabel": "[concat(variables('publicIpAddressDNSName'))]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('vmName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName'))]"
+      ],
+      "properties": {
+        "osProfile": {
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]",
+          "windowsConfiguration": {
+            "provisionVmAgent": "true"
+          }
+        },
+        "hardwareProfile": {
+          "vmSize": "[variables('virtualMachineSize')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-datacenter-azure-edition",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "fromImage",
+            "name": "[concat(variables('vmName'), '-osdisk')]",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            }
+          },
+          "dataDisks": []
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('networkSecurityGroupName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "default-allow-rdp",
+            "properties": {
+              "priority": 110,
+              "protocol": "TCP",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "3389"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('networkInterfaceName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressName'))]",
+        "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              },
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIpAddress": {
+                "id": "[resourceId(resourceGroup().name,'Microsoft.Network/publicIpAddresses', variables('publicIpAddressName'))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2024-10-01",
+      "name": "[variables('foundryAccountName')]",
+      "location": "[variables('location')]",
+      "kind": "AIServices",
+      "sku": {
+        "name": "S0"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "customSubDomainName": "[variables('foundryAccountName')]",
+        "publicNetworkAccess": "Enabled",
+        "allowProjectManagement": true
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/projects",
+      "apiVersion": "2024-10-01",
+      "name": "[concat(variables('foundryAccountName'), '/', variables('foundryProjectName'))]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]"
+      ],
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2024-10-01",
+      "name": "[concat(variables('foundryAccountName'), '/', variables('foundryDeploymentName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]"
+      ],
+      "sku": {
+        "name": "GlobalStandard",
+        "capacity": "[parameters('foundryModelCapacity')]"
+      },
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[parameters('foundryModelName')]",
+          "version": "[parameters('foundryModelVersion')]"
+        },
+        "raiPolicyName": "Microsoft.Default"
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2024-10-01",
+      "name": "[concat(variables('foundryAccountName'), '/', variables('embeddingDeploymentName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', variables('foundryAccountName'), variables('foundryDeploymentName'))]"
+      ],
+      "sku": {
+        "name": "GlobalStandard",
+        "capacity": "[parameters('embeddingModelCapacity')]"
+      },
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[parameters('embeddingModelName')]",
+          "version": "[parameters('embeddingModelVersion')]"
+        },
+        "raiPolicyName": "Microsoft.Default"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[variables('sqlServerName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "administratorLogin": "[parameters('azureSqlAdminLogin')]",
+        "administratorLoginPassword": "[parameters('azureSqlAdminPassword')]",
+        "version": "12.0",
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[concat(variables('sqlServerName'), '/AllowAzureServices')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ],
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers/databases",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[concat(variables('sqlServerName'), '/', variables('sqlDatabaseName'))]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ],
+      "sku": {
+        "name": "HS_Gen5_2",
+        "tier": "Hyperscale",
+        "family": "Gen5",
+        "capacity": 2
+      },
+      "properties": {
+        "zoneRedundant": false
+      }
+    }
+  ],
+  "outputs": {
+    "Deployment ID": {
+      "type": "string",
+      "value": "[parameters('DeploymentID')]"
+    },
+    "LABVM Admin Username": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    },
+    "LABVM Admin Password": {
+      "type": "string",
+      "value": "[parameters('adminPassword')]"
+    },
+    "LABVM DNS Name": {
+      "type": "string",
+      "value": "[concat(variables('publicIpAddressDNSName'), '.', resourceGroup().location, '.cloudapp.azure.com')]"
+    },
+    "Region": {
+      "type": "string",
+      "value": "[variables('location')]"
+    },
+    "trainerUserName": {
+      "type": "string",
+      "value": "[parameters('trainerUserName')]"
+    },
+    "trainerUserPassword": {
+      "type": "string",
+      "value": "[parameters('trainerUserPassword')]"
+    },
+    "Foundry Account Name": {
+      "type": "string",
+      "value": "[variables('foundryAccountName')]"
+    },
+    "Foundry Endpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))).endpoint]"
+    },
+    "Foundry Project Name": {
+      "type": "string",
+      "value": "[variables('foundryProjectName')]"
+    },
+    "Foundry Model Deployment": {
+      "type": "string",
+      "value": "[variables('foundryDeploymentName')]"
+    },
+    "Foundry Embedding Deployment": {
+      "type": "string",
+      "value": "[variables('embeddingDeploymentName')]"
+    },
+    "Azure SQL Server FQDN": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName]"
+    },
+    "Azure SQL Database Name": {
+      "type": "string",
+      "value": "[variables('sqlDatabaseName')]"
+    }
+  }
+}
