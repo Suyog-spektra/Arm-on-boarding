@@ -39,7 +39,7 @@
     },
     "foundryModelVersion": {
       "type": "string",
-      "defaultValue": "1"
+      "defaultValue": "2026-03-05"
     },
     "foundryModelCapacity": {
       "type": "int",
