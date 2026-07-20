@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "value": "demouser"
+    },
+    "adminPassword": {
+      "value": "GEN-PASSWORD"
+    },
+    "AzureUserName": {
+      "value": "GET-AZUSER-UPN"
+    },
+    "AzurePassword": {
+      "value": "GET-AZUSER-PASSWORD"
+    },
+    "ODLID": {
+      "value": "GET-ODL-ID"
+    },
+    "DeploymentID": {
+      "value": "GET-DEPLOYMENT-ID"
+    },
+    "trainerUserName": {
+      "value": "trainer"
+    },
+    "trainerUserPassword": {
+      "value": "GEN-PASSWORD"
+    },
+    "azureSqlAdminLogin": {
+      "value": "sqladmin"
+    },
+    "azureSqlAdminPassword": {
+      "value": "GEN-PASSWORD"
+    },
+    "foundryModelName": {
+      "value": "gpt-5.4"
+    },
+    "foundryModelVersion": {
+      "value": "1"
+    },
+    "foundryModelCapacity": {
+      "value": 10
+    },
+    "embeddingModelName": {
+      "value": "text-embedding-3-small"
+    },
+    "embeddingModelVersion": {
+      "value": "1"
+    },
+    "embeddingModelCapacity": {
+      "value": 10
+    }
+  }
+}
