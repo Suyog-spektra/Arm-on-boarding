@@ -124,7 +124,7 @@
         "settings": {
           "fileUris": [
             "https://experienceazure.blob.core.windows.net/templates/cloudlabs-common/cloudlabs-windows-functions.ps1",
-            "https://raw.githubusercontent.com/Suyog-spektra/Arm-on-boarding/refs/heads/main/Arm%20/psscript01.ps1"
+            "https://raw.githubusercontent.com/Suyog-spektra/Arm-on-boarding/refs/heads/main/Arm/psscript01.ps1"
           ]
         },
         "protectedSettings": {
