@@ -41,6 +41,11 @@ CloudlabsManualAgent Install
 InstallVSCode
 InstallModernVmValidator
 
+if (-not (Get-Module -ListAvailable -Name Az.Accounts)) {
+    Write-Host "Az.Accounts module not found - installing..."
+    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+    Install-Module -Name Az.Accounts -Scope AllUsers -Force -AllowClobber -ErrorAction Stop
+}
 Import-Module Az.Accounts -ErrorAction Stop
 Update-AzConfig -DisableBreakingChangeWarning -Scope Process -ErrorAction Stop
 Get-AzContext -ErrorAction SilentlyContinue | Out-Null
