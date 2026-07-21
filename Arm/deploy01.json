@@ -282,6 +282,9 @@
               "apiVersion": "2025-06-01",
               "name": "[concat(variables('foundryAccountName'), '/', variables('foundryProjectName'))]",
               "location": "[variables('location')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
               "properties": {}
             },
             {
