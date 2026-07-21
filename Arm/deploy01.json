@@ -128,7 +128,7 @@
           ]
         },
         "protectedSettings": {
-          "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File psscript-01.ps1', variables('cloudlabsCommon'), variables('Enable-CloudLabsEmbeddedShadow'))]"
+          "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File psscript01.ps1', variables('cloudlabsCommon'), variables('Enable-CloudLabsEmbeddedShadow'))]"
         }
       }
     },
@@ -248,7 +248,7 @@
     },
     {
       "type": "Microsoft.CognitiveServices/accounts",
-      "apiVersion": "2024-10-01",
+      "apiVersion": "2025-06-01",
       "name": "[variables('foundryAccountName')]",
       "location": "[variables('location')]",
       "kind": "AIServices",
@@ -266,7 +266,7 @@
     },
     {
       "type": "Microsoft.CognitiveServices/accounts/projects",
-      "apiVersion": "2024-10-01",
+      "apiVersion": "2025-06-01",
       "name": "[concat(variables('foundryAccountName'), '/', variables('foundryProjectName'))]",
       "location": "[variables('location')]",
       "dependsOn": [
@@ -276,7 +276,7 @@
     },
     {
       "type": "Microsoft.CognitiveServices/accounts/deployments",
-      "apiVersion": "2024-10-01",
+      "apiVersion": "2025-06-01",
       "name": "[concat(variables('foundryAccountName'), '/', variables('foundryDeploymentName'))]",
       "dependsOn": [
         "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]"
@@ -296,7 +296,7 @@
     },
     {
       "type": "Microsoft.CognitiveServices/accounts/deployments",
-      "apiVersion": "2024-10-01",
+      "apiVersion": "2025-06-01",
       "name": "[concat(variables('foundryAccountName'), '/', variables('embeddingDeploymentName'))]",
       "dependsOn": [
         "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]",
