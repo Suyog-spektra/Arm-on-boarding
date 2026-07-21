@@ -265,54 +265,67 @@
       }
     },
     {
-      "type": "Microsoft.CognitiveServices/accounts/projects",
-      "apiVersion": "2025-06-01",
-      "name": "[concat(variables('foundryAccountName'), '/', variables('foundryProjectName'))]",
-      "location": "[variables('location')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "foundryProjectAndDeployments",
       "dependsOn": [
         "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]"
       ],
-      "properties": {}
-    },
-    {
-      "type": "Microsoft.CognitiveServices/accounts/deployments",
-      "apiVersion": "2025-06-01",
-      "name": "[concat(variables('foundryAccountName'), '/', variables('foundryDeploymentName'))]",
-      "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]"
-      ],
-      "sku": {
-        "name": "GlobalStandard",
-        "capacity": "[parameters('foundryModelCapacity')]"
-      },
       "properties": {
-        "model": {
-          "format": "OpenAI",
-          "name": "[parameters('foundryModelName')]",
-          "version": "[parameters('foundryModelVersion')]"
-        },
-        "raiPolicyName": "Microsoft.Default"
-      }
-    },
-    {
-      "type": "Microsoft.CognitiveServices/accounts/deployments",
-      "apiVersion": "2025-06-01",
-      "name": "[concat(variables('foundryAccountName'), '/', variables('embeddingDeploymentName'))]",
-      "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]",
-        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', variables('foundryAccountName'), variables('foundryDeploymentName'))]"
-      ],
-      "sku": {
-        "name": "GlobalStandard",
-        "capacity": "[parameters('embeddingModelCapacity')]"
-      },
-      "properties": {
-        "model": {
-          "format": "OpenAI",
-          "name": "[parameters('embeddingModelName')]",
-          "version": "[parameters('embeddingModelVersion')]"
-        },
-        "raiPolicyName": "Microsoft.Default"
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects",
+              "apiVersion": "2025-06-01",
+              "name": "[concat(variables('foundryAccountName'), '/', variables('foundryProjectName'))]",
+              "location": "[variables('location')]",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[concat(variables('foundryAccountName'), '/', variables('foundryDeploymentName'))]",
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName'))]"
+              ],
+              "sku": {
+                "name": "GlobalStandard",
+                "capacity": "[parameters('foundryModelCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('foundryModelName')]",
+                  "version": "[parameters('foundryModelVersion')]"
+                },
+                "raiPolicyName": "Microsoft.Default"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[concat(variables('foundryAccountName'), '/', variables('embeddingDeploymentName'))]",
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts/deployments', variables('foundryAccountName'), variables('foundryDeploymentName'))]"
+              ],
+              "sku": {
+                "name": "GlobalStandard",
+                "capacity": "[parameters('embeddingModelCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('embeddingModelName')]",
+                  "version": "[parameters('embeddingModelVersion')]"
+                },
+                "raiPolicyName": "Microsoft.Default"
+              }
+            }
+          ]
+        }
       }
     },
     {
