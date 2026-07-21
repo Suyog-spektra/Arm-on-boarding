@@ -75,7 +75,7 @@
     "vmName": "[concat('labvm-',parameters('DeploymentID'))]",
     "location": "[resourceGroup().location]",
     "virtualMachineSize": "Standard_D2s_v3",
-    "foundryAccountName": "[concat('foundry-faq-', parameters('DeploymentID'))]",
+    "foundryAccountName": "[concat('foundry-', parameters('DeploymentID'))]",
     "foundryProjectName": "FAQ-Assistant-project",
     "foundryDeploymentName": "[parameters('foundryModelName')]",
     "embeddingDeploymentName": "[parameters('embeddingModelName')]",
