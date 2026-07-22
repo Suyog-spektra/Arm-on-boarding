@@ -65,7 +65,6 @@
 	"aadAdminObjectId": {
 	  "type": "string"
 	  }
-	}
   },
   "variables": {
     "cloudlabsCommon": "[concat(' -AzureUserName ', parameters('AzureUserName'), ' -AzurePassword ', parameters('AzurePassword'), ' -AzureTenantID ', variables('AzureTenantID'), ' -AzureSubscriptionID ', variables('AzureSubscriptionID'), ' -ODLID ', parameters('ODLID'), ' -DeploymentID ', parameters('DeploymentID'), ' -adminPassword ', parameters('adminPassword'), ' -GitHubUserName ', variables('transformedValue'), ' -PAT ', parameters('PAT'), ' -GitHubOrg ', parameters('GitHubOrg'), ' -ghsecret ', variables('ghsecret'))]",
