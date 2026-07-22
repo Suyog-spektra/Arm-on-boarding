@@ -34,7 +34,38 @@
     },
     "GitHubOrg": {
       "type": "string"
-    }
+    },
+	"foundryModelName": {
+      "type": "string",
+      "defaultValue": "gpt-5.4"
+    },
+    "foundryModelVersion": {
+      "type": "string",
+      "defaultValue": "2026-03-05"
+    },
+    "foundryModelCapacity": {
+      "type": "int",
+      "defaultValue": 10
+    },
+    "embeddingModelName": {
+      "type": "string",
+      "defaultValue": "text-embedding-3-small"
+    },
+    "embeddingModelVersion": {
+      "type": "string",
+      "defaultValue": "1"
+    },
+    "embeddingModelCapacity": {
+      "type": "int",
+      "defaultValue": 10
+    },
+	  "aadAdminLogin": {
+	  "type": "string"
+	},
+	"aadAdminObjectId": {
+	  "type": "string"
+	  }
+	}
   },
   "variables": {
     "cloudlabsCommon": "[concat(' -AzureUserName ', parameters('AzureUserName'), ' -AzurePassword ', parameters('AzurePassword'), ' -AzureTenantID ', variables('AzureTenantID'), ' -AzureSubscriptionID ', variables('AzureSubscriptionID'), ' -ODLID ', parameters('ODLID'), ' -DeploymentID ', parameters('DeploymentID'), ' -adminPassword ', parameters('adminPassword'), ' -GitHubUserName ', variables('transformedValue'), ' -PAT ', parameters('PAT'), ' -GitHubOrg ', parameters('GitHubOrg'), ' -ghsecret ', variables('ghsecret'))]",
@@ -54,7 +85,15 @@
     "originalEmail": "[parameters('AzureUserName')]",
     "ghsecret": "w2R8Q~MooRgSA855CVxZitnxayzHDecQx4yFHahc",
     "extractedPart": "[split(variables('originalEmail'), '@')[0]]",
-    "transformedValue": "[concat(replace(variables('extractedPart'), '_', '-'), '_clabs')]"
+    "transformedValue": "[concat(replace(variables('extractedPart'), '_', '-'), '_clabs')]",
+	"vmName": "[concat('labvm-',parameters('DeploymentID'))]",
+    "virtualMachineSize": "Standard_D2s_v3",
+    "foundryAccountName": "[concat('foundry-', parameters('DeploymentID'))]",
+    "foundryProjectName": "FAQ-Assistant-project",
+    "foundryDeploymentName": "[parameters('foundryModelName')]",
+    "embeddingDeploymentName": "[parameters('embeddingModelName')]",
+    "sqlServerName": "[concat('faq-ai-assistant-', parameters('DeploymentID'))]",
+    "sqlDatabaseName": "[concat('faq-ai-assistant-db-', parameters('DeploymentID'))]"
   },
   "resources": [
     {
@@ -133,7 +172,7 @@
             "autoUpgradeMinorVersion": "true",
             "settings": {
               "fileUris": [
-                "https://experienceazure.blob.core.windows.net/templates/github-copilot-sdlc/scripts/psscript-01.ps1",
+                "https://raw.githubusercontent.com/Suyog-spektra/Arm-on-boarding/refs/heads/main/Test/psscript-01.ps1",
                 "https://experienceazure.blob.core.windows.net/templates/cloudlabs-common/cloudlabs-windows-functions.ps1"
               ],
               "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File github-copilot-sdlc/scripts/psscript-01.ps1', variables('cloudlabsCommon'), variables('Enable-CloudLabsEmbeddedShadow'))]"
