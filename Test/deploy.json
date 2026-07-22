@@ -376,6 +376,7 @@
 	  "properties": {
 	    "version": "12.0",
 	    "publicNetworkAccess": "Enabled",
+		"primaryUserAssignedIdentityId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]",
 	    "administrators": {
 	      "administratorType": "ActiveDirectory",
 	      "principalType": "Application",
