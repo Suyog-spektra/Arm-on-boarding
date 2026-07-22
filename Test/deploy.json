@@ -58,13 +58,7 @@
     "embeddingModelCapacity": {
       "type": "int",
       "defaultValue": 10
-    },
-	  "aadAdminLogin": {
-	  "type": "string"
-	},
-	"aadAdminObjectId": {
-	  "type": "string"
-	  }
+    }
   },
   "variables": {
     "cloudlabsCommon": "[concat(' -AzureUserName ', parameters('AzureUserName'), ' -AzurePassword ', parameters('AzurePassword'), ' -AzureTenantID ', variables('AzureTenantID'), ' -AzureSubscriptionID ', variables('AzureSubscriptionID'), ' -ODLID ', parameters('ODLID'), ' -DeploymentID ', parameters('DeploymentID'), ' -adminPassword ', parameters('adminPassword'), ' -GitHubUserName ', variables('transformedValue'), ' -PAT ', parameters('PAT'), ' -GitHubOrg ', parameters('GitHubOrg'), ' -ghsecret ', variables('ghsecret'))]",
@@ -92,7 +86,8 @@
     "foundryDeploymentName": "[parameters('foundryModelName')]",
     "embeddingDeploymentName": "[parameters('embeddingModelName')]",
     "sqlServerName": "[concat('faq-ai-assistant-', parameters('DeploymentID'))]",
-    "sqlDatabaseName": "[concat('faq-ai-assistant-db-', parameters('DeploymentID'))]"
+    "sqlDatabaseName": "[concat('faq-ai-assistant-db-', parameters('DeploymentID'))]",
+	"sqlAdminIdentityName": "[concat('sql-admin-id-', parameters('DeploymentID'))]"
   },
   "resources": [
     {
@@ -358,19 +353,34 @@
         }
       }
     },
+	{
+	  "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+	  "apiVersion": "2023-01-31",
+	  "name": "[variables('sqlAdminIdentityName')]",
+	  "location": "[variables('location')]"
+	},
     {
 	  "type": "Microsoft.Sql/servers",
 	  "apiVersion": "2023-08-01-preview",
 	  "name": "[variables('sqlServerName')]",
 	  "location": "[variables('location')]",
+	  "dependsOn": [
+	    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]"
+	  ],
+	  "identity": {
+	    "type": "UserAssigned",
+	    "userAssignedIdentities": {
+	      "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]": {}
+	    }
+	  },
 	  "properties": {
 	    "version": "12.0",
 	    "publicNetworkAccess": "Enabled",
 	    "administrators": {
 	      "administratorType": "ActiveDirectory",
-	      "principalType": "User",
-	      "login": "[parameters('aadAdminLogin')]",
-	      "sid": "[parameters('aadAdminObjectId')]",
+	      "principalType": "Application",
+	      "login": "[variables('sqlAdminIdentityName')]",
+	      "sid": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))).principalId]",
 	      "tenantId": "[subscription().tenantId]",
 	      "azureADOnlyAuthentication": true
 	    }
