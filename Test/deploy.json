@@ -134,7 +134,7 @@
           }
         },
         "hardwareProfile": {
-          "vmSize": "Standard_D4s_v3"
+          "vmSize": "[variables('virtualMachineSize')]"
         },
 		"securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
         "storageProfile": {
