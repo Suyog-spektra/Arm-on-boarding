@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "adminUsername": {
@@ -8,14 +8,14 @@
     "adminPassword": {
       "type": "securestring"
     },
-    "AzureUserName": {
+    "azureUserName": {
       "type": "string"
     },
-    "AzurePassword": {
+    "azurePassword": {
       "type": "securestring"
     },
     "ODLID": {
-      "type": "String"
+      "type": "string"
     },
     "DeploymentID": {
       "type": "string"
@@ -26,139 +26,91 @@
     "trainerUserPassword": {
       "type": "string"
     },
-    "azureSqlAdminLogin": {
-      "type": "string",
-      "defaultValue": "sqladmin"
+    "GitHubUserName": {
+      "type": "string"
     },
-    "azureSqlAdminPassword": {
-      "type": "securestring"
+    "PAT": {
+      "type": "string"
     },
-    "foundryModelName": {
-      "type": "string",
-      "defaultValue": "gpt-5.4"
-    },
-    "foundryModelVersion": {
-      "type": "string",
-      "defaultValue": "2026-03-05"
+    "GitHubOrg": {
+      "type": "string"
     },
     "foundryModelCapacity": {
       "type": "int",
       "defaultValue": 10
     },
-    "embeddingModelName": {
-      "type": "string",
-      "defaultValue": "text-embedding-3-small"
-    },
-    "embeddingModelVersion": {
-      "type": "string",
-      "defaultValue": "1"
-    },
     "embeddingModelCapacity": {
       "type": "int",
       "defaultValue": 10
+    },
+    "vmSecurityType": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "allowedValues": [
+        "TrustedLaunch",
+        "Standard"
+      ],
+      "metadata": {
+        "description": "Set to 'TrustedLaunch' only if the CloudLabsSIG image is confirmed Gen2. The image used here has been failing VM creation under TrustedLaunch, most likely because it's a Gen1 image. Defaulting to 'Standard' until confirmed."
+      }
     }
   },
   "variables": {
-    "cloudlabsCommon": "[concat(' -AzureUserName ', parameters('AzureUserName'), ' -AzurePassword ', parameters('AzurePassword'), ' -AzureTenantID ', variables('AzureTenantID'), ' -AzureSubscriptionID ', variables('AzureSubscriptionID'),' -odlId ', parameters('ODLID'), ' -DeploymentID ', parameters('DeploymentID'), ' -adminPassword ', parameters('adminPassword'))]",
+    "cloudlabsCommon": "[concat(' -AzureUserName ', parameters('AzureUserName'), ' -AzurePassword ', parameters('AzurePassword'), ' -AzureTenantID ', variables('AzureTenantID'), ' -AzureSubscriptionID ', variables('AzureSubscriptionID'), ' -ODLID ', parameters('ODLID'), ' -DeploymentID ', parameters('DeploymentID'), ' -adminPassword ', parameters('adminPassword'), ' -GitHubUserName ', variables('transformedValue'), ' -PAT ', parameters('PAT'), ' -GitHubOrg ', parameters('GitHubOrg'), ' -ghsecret ', variables('ghsecret'))]",
     "Enable-CloudLabsEmbeddedShadow": "[concat(' -vmAdminUsername ', parameters('adminUsername'), ' -trainerUserName ', parameters('trainerUserName'), ' -trainerUserPassword ', parameters('trainerUserPassword'))]",
     "AzureSubscriptionID": "[subscription().subscriptionId]",
     "AzureTenantID": "[subscription().tenantId]",
-    "addressPrefix": "10.0.0.0/16",
-    "networkInterfaceName": "[concat(variables('vmName'), '-nic')]",
-    "networkSecurityGroupName": "[concat(variables('vmName'), '-nsg')]",
-    "publicIpAddressDNSName": "[concat('labvm', uniqueString(resourceGroup().id))]",
-    "publicIpAddressName": "[concat(variables('vmName'), '-pip')]",
-    "subnetName": "Subnet",
-    "subnetPrefix": "10.0.0.0/24",
-    "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets/',variables('virtualNetworkName'), variables('subnetName'))]",
-    "virtualNetworkName": "labvNet",
-    "vmName": "[concat('labvm-',parameters('DeploymentID'))]",
     "location": "[resourceGroup().location]",
+    "rgName": "[resourceGroup().name]",
+    "winvirtualMachineName": "[concat('labvm-',parameters('DeploymentID'))]",
+    "computerNameRaw": "[concat('labvm-', parameters('DeploymentID'))]",
+    "computerName": "[substring(variables('computerNameRaw'), 0, min(15, length(variables('computerNameRaw'))))]",
+    "networkInterfaceName": "[concat(variables('winvirtualMachineName'), '-nic')]",
+    "publicIpAddressName": "[concat('labvmip', uniqueString(resourceGroup().id))]",
+    "networkSecurityGroupName": "nsg",
+    "vmStorageAccountContainerName": "vhds",
+    "virtualNetworkName": "vnet",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/','subnet')]",
+    "originalEmail": "[parameters('AzureUserName')]",
+    "ghsecret": "w2R8Q~MooRgSA855CVxZitnxayzHDecQx4yFHahc",
+    "extractedPart": "[split(variables('originalEmail'), '@')[0]]",
+    "transformedValue": "[concat(replace(variables('extractedPart'), '_', '-'), '_clabs')]",
+    "vmName": "[concat('labvm-',parameters('DeploymentID'))]",
     "virtualMachineSize": "Standard_D2s_v3",
     "foundryAccountName": "[concat('foundry-', parameters('DeploymentID'))]",
     "foundryProjectName": "FAQ-Assistant-project",
-    "foundryDeploymentName": "[parameters('foundryModelName')]",
-    "embeddingDeploymentName": "[parameters('embeddingModelName')]",
+    "foundryDeploymentName": "gpt-5.4",
+    "embeddingDeploymentName": "text-embedding-3-small",
     "sqlServerName": "[concat('faq-ai-assistant-', parameters('DeploymentID'))]",
-    "sqlDatabaseName": "[concat('faq-ai-assistant-db-', parameters('DeploymentID'))]"
+    "sqlDatabaseName": "[concat('faq-ai-assistant-db-', parameters('DeploymentID'))]",
+    "sqlAdminIdentityName": "[concat('sql-admin-id-', parameters('DeploymentID'))]"
   },
   "resources": [
     {
-      "type": "Microsoft.Network/virtualNetworks",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('virtualNetworkName')]",
-      "location": "[variables('location')]",
+      "name": "pid-e843308b-3ce2-42a2-b743-2f21b36a5e68",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
       "properties": {
-        "addressSpace": {
-          "addressPrefixes": [
-            "[variables('addressPrefix')]"
-          ]
-        },
-        "subnets": [
-          {
-            "name": "[variables('subnetName')]",
-            "properties": {
-              "addressPrefix": "[variables('subnetPrefix')]"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('vmName'),'/', 'winExtension')]",
-      "apiVersion": "2023-09-01",
-      "location": "[resourceGroup().location]",
-      "comments": "Post-deployment configuration: tooling, repo clone, pip install, .env build",
-      "tags": {
-        "displayName": "VM Extension"
-      },
-      "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
-      ],
-      "properties": {
-        "publisher": "Microsoft.Compute",
-        "type": "CustomScriptExtension",
-        "typeHandlerVersion": "1.8",
-        "autoUpgradeMinorVersion": true,
-        "settings": {
-          "fileUris": [
-            "https://experienceazure.blob.core.windows.net/templates/cloudlabs-common/cloudlabs-windows-functions.ps1",
-            "https://raw.githubusercontent.com/Suyog-spektra/Arm-on-boarding/refs/heads/main/Arm/psscript01.ps1"
-          ]
-        },
-        "protectedSettings": {
-          "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File psscript01.ps1', variables('cloudlabsCommon'), variables('Enable-CloudLabsEmbeddedShadow'))]"
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": []
         }
       }
     },
     {
-      "type": "Microsoft.Network/publicIpAddresses",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('publicIpAddressName')]",
-      "location": "[variables('location')]",
-      "sku": {
-        "name": "Standard"
-      },
-      "properties": {
-        "publicIpAllocationMethod": "Static",
-        "publicIPAddressVersion": "IPv4",
-        "dnsSettings": {
-          "domainNameLabel": "[concat(variables('publicIpAddressDNSName'))]"
-        }
-      }
-    },
-    {
+      "name": "[variables('winvirtualMachineName')]",
       "type": "Microsoft.Compute/virtualMachines",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('vmName')]",
-      "location": "[variables('location')]",
+      "apiVersion": "2024-11-01",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName'))]"
       ],
       "properties": {
         "osProfile": {
-          "computerName": "[variables('vmName')]",
+          "computerName": "[variables('computerName')]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]",
           "windowsConfiguration": {
@@ -168,16 +120,13 @@
         "hardwareProfile": {
           "vmSize": "[variables('virtualMachineSize')]"
         },
+        "securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
         "storageProfile": {
           "imageReference": {
-            "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
-            "sku": "2022-datacenter-azure-edition",
-            "version": "latest"
+            "id": "/subscriptions/8365240a-f0e4-4c52-82b1-be7af985ebbe/resourceGroups/cloudlabs-mgmt/providers/Microsoft.Compute/galleries/CloudLabsSIG/images/GitHub-Copilot-SDLC-Image/versions/1.0.0"
           },
           "osDisk": {
             "createOption": "fromImage",
-            "name": "[concat(variables('vmName'), '-osdisk')]",
             "managedDisk": {
               "storageAccountType": "StandardSSD_LRS"
             }
@@ -191,36 +140,58 @@
             }
           ]
         }
-      }
+      },
+      "resources": [
+        {
+          "type": "extensions",
+          "name": "vmExtension",
+          "apiVersion": "2024-11-01",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', variables('winvirtualMachineName'))]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.8",
+            "autoUpgradeMinorVersion": "true",
+            "settings": {
+              "fileUris": [
+                "https://raw.githubusercontent.com/Suyog-spektra/Arm-on-boarding/refs/heads/main/Test/psscript-01.ps1",
+                "https://experienceazure.blob.core.windows.net/templates/cloudlabs-common/cloudlabs-windows-functions.ps1"
+              ],
+              "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File github-copilot-sdlc/scripts/psscript-01.ps1', variables('cloudlabsCommon'), variables('Enable-CloudLabsEmbeddedShadow'))]"
+            }
+          }
+        }
+      ]
     },
     {
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('networkSecurityGroupName')]",
-      "location": "[variables('location')]",
+      "name": "[variables('virtualNetworkName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-07-01",
+      "location": "[resourceGroup().location]",
       "properties": {
-        "securityRules": [
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
           {
-            "name": "default-allow-rdp",
+            "name": "subnet",
             "properties": {
-              "priority": 110,
-              "protocol": "TCP",
-              "access": "Allow",
-              "direction": "Inbound",
-              "sourceAddressPrefix": "*",
-              "sourcePortRange": "*",
-              "destinationAddressPrefix": "*",
-              "destinationPortRange": "3389"
+              "addressPrefix": "10.0.0.0/24"
             }
           }
         ]
       }
     },
     {
-      "type": "Microsoft.Network/networkInterfaces",
-      "apiVersion": "2023-09-01",
       "name": "[variables('networkInterfaceName')]",
-      "location": "[variables('location')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2024-07-01",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressName'))]",
@@ -236,14 +207,56 @@
               },
               "privateIPAllocationMethod": "Dynamic",
               "publicIpAddress": {
-                "id": "[resourceId(resourceGroup().name,'Microsoft.Network/publicIpAddresses', variables('publicIpAddressName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressName'))]"
               }
             }
           }
         ],
         "networkSecurityGroup": {
-          "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
         }
+      }
+    },
+    {
+      "name": "[variables('publicIpAddressName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2024-05-01",
+      "comments": "Public IP",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "Public IP"
+      },
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('publicIpAddressName')]"
+        }
+      }
+    },
+    {
+      "name": "[variables('networkSecurityGroupName')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2024-07-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "default-allow-rdp",
+            "properties": {
+              "priority": 1000,
+              "protocol": "TCP",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "3389"
+            }
+          }
+        ]
       }
     },
     {
@@ -301,8 +314,8 @@
               "properties": {
                 "model": {
                   "format": "OpenAI",
-                  "name": "[parameters('foundryModelName')]",
-                  "version": "[parameters('foundryModelVersion')]"
+                  "name": "gpt-5.4",
+                  "version": "2026-03-05"
                 },
                 "raiPolicyName": "Microsoft.Default"
               }
@@ -321,8 +334,8 @@
               "properties": {
                 "model": {
                   "format": "OpenAI",
-                  "name": "[parameters('embeddingModelName')]",
-                  "version": "[parameters('embeddingModelVersion')]"
+                  "name": "text-embedding-3-small",
+                  "version": "1"
                 },
                 "raiPolicyName": "Microsoft.Default"
               }
@@ -332,15 +345,37 @@
       }
     },
     {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('sqlAdminIdentityName')]",
+      "location": "[variables('location')]"
+    },
+    {
       "type": "Microsoft.Sql/servers",
       "apiVersion": "2023-08-01-preview",
       "name": "[variables('sqlServerName')]",
       "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]"
+      ],
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]": {}
+        }
+      },
       "properties": {
-        "administratorLogin": "[parameters('azureSqlAdminLogin')]",
-        "administratorLoginPassword": "[parameters('azureSqlAdminPassword')]",
         "version": "12.0",
-        "publicNetworkAccess": "Enabled"
+        "publicNetworkAccess": "Enabled",
+        "primaryUserAssignedIdentityId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]",
+        "administrators": {
+          "administratorType": "ActiveDirectory",
+          "principalType": "Application",
+          "login": "[variables('sqlAdminIdentityName')]",
+          "sid": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))).principalId]",
+          "tenantId": "[subscription().tenantId]",
+          "azureADOnlyAuthentication": true
+        }
       }
     },
     {
@@ -375,61 +410,37 @@
     }
   ],
   "outputs": {
-    "Deployment ID": {
+    "Deployment-id": {
       "type": "string",
       "value": "[parameters('DeploymentID')]"
     },
-    "LABVM Admin Username": {
+    "VM Admin Username": {
       "type": "string",
       "value": "[parameters('adminUsername')]"
     },
-    "LABVM Admin Password": {
+    "VM Admin Password": {
       "type": "string",
       "value": "[parameters('adminPassword')]"
     },
-    "LABVM DNS Name": {
+    "Windows VM DNS Name": {
       "type": "string",
-      "value": "[concat(variables('publicIpAddressDNSName'), '.', resourceGroup().location, '.cloudapp.azure.com')]"
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressName'))).dnsSettings.fqdn]"
     },
-    "Region": {
-      "type": "string",
-      "value": "[variables('location')]"
-    },
-    "trainerUserName": {
-      "type": "string",
-      "value": "[parameters('trainerUserName')]"
-    },
-    "trainerUserPassword": {
-      "type": "string",
+    "Trainer Password": {
+      "type": "String",
       "value": "[parameters('trainerUserPassword')]"
     },
-    "Foundry Account Name": {
-      "type": "string",
-      "value": "[variables('foundryAccountName')]"
+    "GitHub User Name": {
+      "type": "String",
+      "value": "[variables('transformedValue')]"
     },
-    "Foundry Endpoint": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))).endpoint]"
+    "GitHub Password": {
+      "type": "String",
+      "value": "[parameters('azurePassword')]"
     },
-    "Foundry Project Name": {
-      "type": "string",
-      "value": "[variables('foundryProjectName')]"
-    },
-    "Foundry Model Deployment": {
-      "type": "string",
-      "value": "[variables('foundryDeploymentName')]"
-    },
-    "Foundry Embedding Deployment": {
-      "type": "string",
-      "value": "[variables('embeddingDeploymentName')]"
-    },
-    "Azure SQL Server FQDN": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName'))).fullyQualifiedDomainName]"
-    },
-    "Azure SQL Database Name": {
-      "type": "string",
-      "value": "[variables('sqlDatabaseName')]"
+    "GitHub Signup": {
+      "type": "String",
+      "value": "https://myapplications.microsoft.com/?tenantid=b8576024-eb68-4115-979d-daccb708fb47"
     }
   }
 }
