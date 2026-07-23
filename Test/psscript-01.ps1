@@ -125,7 +125,7 @@ code --list-extensions | Select-String "ms-mssql.mssql"
 # VS Code extensions in the correct (interactive user) context.
 New-Item -Path "C:\LabScripts" -ItemType Directory -Force | Out-Null
 $WebClient = New-Object System.Net.WebClient
-$WebClient.DownloadFile("https://experienceazure.blob.core.windows.net/templates/faq-ai-assistant/scripts/logon-task.ps1", "C:\LabScripts\logon-task.ps1")
+$WebClient.DownloadFile("https://experienceazure.blob.core.windows.net/templates/github-copilot-sdlc/scripts/logontask-01.ps1", "C:\LabScripts\logon-task.ps1")
 
 $Trigger = New-ScheduledTaskTrigger -AtLogOn
 $User = "$($env:ComputerName)\$vmAdminUsername"
