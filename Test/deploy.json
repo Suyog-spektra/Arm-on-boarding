@@ -42,17 +42,6 @@
     "embeddingModelCapacity": {
       "type": "int",
       "defaultValue": 10
-    },
-    "vmSecurityType": {
-      "type": "string",
-      "defaultValue": "Standard",
-      "allowedValues": [
-        "TrustedLaunch",
-        "Standard"
-      ],
-      "metadata": {
-        "description": "Set to 'TrustedLaunch' only if the CloudLabsSIG image is confirmed Gen2. The image used here has been failing VM creation under TrustedLaunch, most likely because it's a Gen1 image. Defaulting to 'Standard' until confirmed."
-      }
     }
   },
   "variables": {
@@ -120,7 +109,6 @@
         "hardwareProfile": {
           "vmSize": "[variables('virtualMachineSize')]"
         },
-        "securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
         "storageProfile": {
           "imageReference": {
             "publisher": "MicrosoftWindowsServer",
@@ -130,7 +118,6 @@
           },
           "osDisk": {
             "createOption": "fromImage",
-            "name": "[concat(variables('winvirtualMachineName'), '-osdisk')]",
             "managedDisk": {
               "storageAccountType": "StandardSSD_LRS"
             }
