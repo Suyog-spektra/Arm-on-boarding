@@ -58,6 +58,17 @@
     "embeddingModelCapacity": {
       "type": "int",
       "defaultValue": 10
+    },
+    "vmSecurityType": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "allowedValues": [
+        "TrustedLaunch",
+        "Standard"
+      ],
+      "metadata": {
+        "description": "Set to 'TrustedLaunch' only if the CloudLabsSIG image is confirmed Gen2. The image used here has been failing VM creation under TrustedLaunch, most likely because it's a Gen1 image. Defaulting to 'Standard' until confirmed."
+      }
     }
   },
   "variables": {
@@ -125,13 +136,7 @@
         "hardwareProfile": {
           "vmSize": "Standard_D4s_v3"
         },
-		"securityProfile": {
-          "securityType": "TrustedLaunch",
-          "uefiSettings": {
-            "secureBootEnabled": true,
-            "vTpmEnabled": true
-          }
-        },
+		"securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
         "storageProfile": {
           "imageReference": {
             "id": "/subscriptions/f2e940be-5ae4-4b62-8d2f-c99e37ddf5e6/resourceGroups/cloudlabs-mgmt/providers/Microsoft.Compute/galleries/CloudLabsSIG/images/GitHub-Copilot-SDLC-Image/versions/1.0.0"
