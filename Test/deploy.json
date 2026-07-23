@@ -123,10 +123,14 @@
         "securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
         "storageProfile": {
           "imageReference": {
-            "id": "/subscriptions/8365240a-f0e4-4c52-82b1-be7af985ebbe/resourceGroups/cloudlabs-mgmt/providers/Microsoft.Compute/galleries/CloudLabsSIG/images/GitHub-Copilot-SDLC-Image/versions/1.0.0"
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2025-datacenter-azure-edition",
+            "version": "latest"
           },
           "osDisk": {
             "createOption": "fromImage",
+            "name": "[concat(variables('winvirtualMachineName'), '-osdisk')]",
             "managedDisk": {
               "storageAccountType": "StandardSSD_LRS"
             }
