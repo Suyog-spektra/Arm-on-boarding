@@ -35,25 +35,9 @@
     "GitHubOrg": {
       "type": "string"
     },
-	"foundryModelName": {
-      "type": "string",
-      "defaultValue": "gpt-5.4"
-    },
-    "foundryModelVersion": {
-      "type": "string",
-      "defaultValue": "2026-03-05"
-    },
     "foundryModelCapacity": {
       "type": "int",
       "defaultValue": 10
-    },
-    "embeddingModelName": {
-      "type": "string",
-      "defaultValue": "text-embedding-3-small"
-    },
-    "embeddingModelVersion": {
-      "type": "string",
-      "defaultValue": "1"
     },
     "embeddingModelCapacity": {
       "type": "int",
@@ -92,15 +76,15 @@
     "ghsecret": "w2R8Q~MooRgSA855CVxZitnxayzHDecQx4yFHahc",
     "extractedPart": "[split(variables('originalEmail'), '@')[0]]",
     "transformedValue": "[concat(replace(variables('extractedPart'), '_', '-'), '_clabs')]",
-	"vmName": "[concat('labvm-',parameters('DeploymentID'))]",
+    "vmName": "[concat('labvm-',parameters('DeploymentID'))]",
     "virtualMachineSize": "Standard_D2s_v3",
     "foundryAccountName": "[concat('foundry-', parameters('DeploymentID'))]",
     "foundryProjectName": "FAQ-Assistant-project",
-    "foundryDeploymentName": "[parameters('foundryModelName')]",
-    "embeddingDeploymentName": "[parameters('embeddingModelName')]",
+    "foundryDeploymentName": "gpt-5.4",
+    "embeddingDeploymentName": "text-embedding-3-small",
     "sqlServerName": "[concat('faq-ai-assistant-', parameters('DeploymentID'))]",
     "sqlDatabaseName": "[concat('faq-ai-assistant-db-', parameters('DeploymentID'))]",
-	"sqlAdminIdentityName": "[concat('sql-admin-id-', parameters('DeploymentID'))]"
+    "sqlAdminIdentityName": "[concat('sql-admin-id-', parameters('DeploymentID'))]"
   },
   "resources": [
     {
@@ -136,7 +120,7 @@
         "hardwareProfile": {
           "vmSize": "[variables('virtualMachineSize')]"
         },
-		"securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
+        "securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
         "storageProfile": {
           "imageReference": {
             "id": "/subscriptions/8365240a-f0e4-4c52-82b1-be7af985ebbe/resourceGroups/cloudlabs-mgmt/providers/Microsoft.Compute/galleries/CloudLabsSIG/images/GitHub-Copilot-SDLC-Image/versions/1.0.0"
@@ -242,7 +226,7 @@
       "tags": {
         "displayName": "Public IP"
       },
-      "sku":{
+      "sku": {
         "name": "Standard"
       },
       "properties": {
@@ -275,7 +259,7 @@
         ]
       }
     },
-	{
+    {
       "type": "Microsoft.CognitiveServices/accounts",
       "apiVersion": "2025-06-01",
       "name": "[variables('foundryAccountName')]",
@@ -330,8 +314,8 @@
               "properties": {
                 "model": {
                   "format": "OpenAI",
-                  "name": "[parameters('foundryModelName')]",
-                  "version": "[parameters('foundryModelVersion')]"
+                  "name": "gpt-5.4",
+                  "version": "2026-03-05"
                 },
                 "raiPolicyName": "Microsoft.Default"
               }
@@ -350,8 +334,8 @@
               "properties": {
                 "model": {
                   "format": "OpenAI",
-                  "name": "[parameters('embeddingModelName')]",
-                  "version": "[parameters('embeddingModelVersion')]"
+                  "name": "text-embedding-3-small",
+                  "version": "1"
                 },
                 "raiPolicyName": "Microsoft.Default"
               }
@@ -360,40 +344,40 @@
         }
       }
     },
-	{
-	  "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-	  "apiVersion": "2023-01-31",
-	  "name": "[variables('sqlAdminIdentityName')]",
-	  "location": "[variables('location')]"
-	},
     {
-	  "type": "Microsoft.Sql/servers",
-	  "apiVersion": "2023-08-01-preview",
-	  "name": "[variables('sqlServerName')]",
-	  "location": "[variables('location')]",
-	  "dependsOn": [
-	    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]"
-	  ],
-	  "identity": {
-	    "type": "UserAssigned",
-	    "userAssignedIdentities": {
-	      "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]": {}
-	    }
-	  },
-	  "properties": {
-	    "version": "12.0",
-	    "publicNetworkAccess": "Enabled",
-		"primaryUserAssignedIdentityId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]",
-	    "administrators": {
-	      "administratorType": "ActiveDirectory",
-	      "principalType": "Application",
-	      "login": "[variables('sqlAdminIdentityName')]",
-	      "sid": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))).principalId]",
-	      "tenantId": "[subscription().tenantId]",
-	      "azureADOnlyAuthentication": true
-	    }
-	  }
-	},
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('sqlAdminIdentityName')]",
+      "location": "[variables('location')]"
+    },
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[variables('sqlServerName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]"
+      ],
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]": {}
+        }
+      },
+      "properties": {
+        "version": "12.0",
+        "publicNetworkAccess": "Enabled",
+        "primaryUserAssignedIdentityId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))]",
+        "administrators": {
+          "administratorType": "ActiveDirectory",
+          "principalType": "Application",
+          "login": "[variables('sqlAdminIdentityName')]",
+          "sid": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('sqlAdminIdentityName'))).principalId]",
+          "tenantId": "[subscription().tenantId]",
+          "azureADOnlyAuthentication": true
+        }
+      }
+    },
     {
       "type": "Microsoft.Sql/servers/firewallRules",
       "apiVersion": "2023-08-01-preview",
@@ -450,11 +434,11 @@
       "type": "String",
       "value": "[variables('transformedValue')]"
     },
-		"GitHub Password": {
+    "GitHub Password": {
       "type": "String",
       "value": "[parameters('azurePassword')]"
     },
-		"GitHub Signup": {
+    "GitHub Signup": {
       "type": "String",
       "value": "https://myapplications.microsoft.com/?tenantid=b8576024-eb68-4115-979d-daccb708fb47"
     }
