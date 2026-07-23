@@ -68,6 +68,8 @@
     "location": "[resourceGroup().location]",
     "rgName": "[resourceGroup().name]",
     "winvirtualMachineName": "[concat('labvm-',parameters('DeploymentID'))]",
+    "computerNameRaw": "[concat('labvm-', parameters('DeploymentID'))]",
+    "computerName": "[substring(variables('computerNameRaw'), 0, min(15, length(variables('computerNameRaw'))))]",
     "networkInterfaceName": "[concat(variables('winvirtualMachineName'), '-nic')]",
     "publicIpAddressName": "[concat('labvmip', uniqueString(resourceGroup().id))]",
     "networkSecurityGroupName": "nsg",
@@ -113,7 +115,7 @@
       ],
       "properties": {
         "osProfile": {
-          "computerName": "[variables('winvirtualMachineName')]",
+          "computerName": "[variables('computerName')]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]",
           "windowsConfiguration": {
