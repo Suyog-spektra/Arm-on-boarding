@@ -19,10 +19,19 @@ Param (
     [string]
     $trainerUserName,
     [string]
-    $trainerUserPassword
+    $trainerUserPassword,
+    [string]
+    $GitHubUserName,
+    [string]
+    $PAT,
+    [string]
+    $GitHubOrg,
+    [string]
+    $ghsecret
 )
 
 Start-Transcript -Path "C:\WindowsAzure\Logs\CloudLabsCustomScriptExtension.txt" -Append
+[Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
 
 #Import Common Functions
@@ -34,7 +43,30 @@ $commonscriptpath = "$path" + "\cloudlabs-common\cloudlabs-windows-functions.ps1
 # Core CloudLabs setup - unchanged, required regardless of lab content
 WindowsServerCommon
 CreateCredFile $AzureUserName $AzurePassword $AzureTenantID $AzureSubscriptionID $DeploymentID
+
+# Load the credentials that CreateCredFile just wrote out, so subsequent
+# Az module / GitHub calls in this session actually have context to work with.
+. C:\LabFiles\AzureCreds.ps1
+
 Enable-CloudLabsEmbeddedShadow $vmAdminUsername $trainerUserName $trainerUserPassword
+
+# --- GitHub / Copilot enablement ---
+$UserEmail = $AzureUserName
+$GroupId = "bb0215fb-69d3-4d16-be56-cd2da619de31"
+$TenantId = "f871d17e-efcd-44c7-ba5a-0162efa2fded"
+$ClientId = "e6b585c6-079f-489c-ae6b-a57a274139ea"
+$ClientSecret = "w2R8Q~MooRgSA855CVxZitnxayzHDecQx4yFHahc"
+
+Enable-GitHub -UserEmail $UserEmail -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret -WithCopilot
+
+# Set Environment Variables
+# NOTE: fixed from script 2, which referenced the undefined $GitHubUserEmail.
+[string]$GitUserEmail = $UserEmail
+[string]$PAToken = $ghsecret
+
+[System.Environment]::SetEnvironmentVariable('GitUserEmail', $GitHubUserName, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('ghsecret', $ghsecret, [System.EnvironmentVariableTarget]::Machine)
+
 CloudlabsManualAgent Install
 
 # Exercise 00, Task 2: Visual Studio Code
@@ -51,6 +83,8 @@ Update-AzConfig -DisableBreakingChangeWarning -Scope Process -ErrorAction Stop
 Get-AzContext -ErrorAction SilentlyContinue | Out-Null
 
 Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
+
+Start-Sleep -Seconds 30
 
 # Exercise 00, Task 2: Python 3 and pip
 Write-Host "Installing Python..."
@@ -90,7 +124,6 @@ code --list-extensions | Select-String "ms-mssql.mssql"
 # Download the logon task, which installs the SQL Server / GitHub Copilot
 # VS Code extensions in the correct (interactive user) context.
 New-Item -Path "C:\LabScripts" -ItemType Directory -Force | Out-Null
-
 $WebClient = New-Object System.Net.WebClient
 $WebClient.DownloadFile("https://experienceazure.blob.core.windows.net/templates/faq-ai-assistant/scripts/logon-task.ps1", "C:\LabScripts\logon-task.ps1")
 
@@ -101,5 +134,4 @@ $Settings = New-ScheduledTaskSettingsSet -Hidden
 Register-ScheduledTask -TaskName "logon-task" -Trigger $Trigger -User $User -Action $Action -Settings $Settings -RunLevel Highest -Force
 
 Stop-Transcript
-
 Restart-Computer -Force
