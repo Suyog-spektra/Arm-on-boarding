@@ -139,7 +139,7 @@
 		"securityProfile": "[if(equals(parameters('vmSecurityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject('securityType', 'Standard'))]",
         "storageProfile": {
           "imageReference": {
-            "id": "/subscriptions/f2e940be-5ae4-4b62-8d2f-c99e37ddf5e6/resourceGroups/cloudlabs-mgmt/providers/Microsoft.Compute/galleries/CloudLabsSIG/images/GitHub-Copilot-SDLC-Image/versions/1.0.0"
+            "id": "/subscriptions/b8576024-eb68-4115-979d-daccb708fb47/resourceGroups/cloudlabs-mgmt/providers/Microsoft.Compute/galleries/CloudLabsSIG/images/GitHub-Copilot-SDLC-Image/versions/1.0.0"
           },
           "osDisk": {
             "createOption": "fromImage",
